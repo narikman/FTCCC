@@ -10,8 +10,6 @@ import org.firstinspires.ftc.teamcode.robot.Shooter;
 @Autonomous(name="Auto")
 public class Auto extends AutoBase {
 
-    private static final double FIELD_SIZE=144.0;
-
     private static final double START_X=53.33948545861298;
     private static final double START_Y=7.834731543624155;
     private static final double START_H=270;
@@ -32,13 +30,11 @@ public class Auto extends AutoBase {
     private static final double PARK_Y=107.7628635;
     private static final double PARK_H=0;
 
-    private static final double FEED_SEC=0.60;
-    private static final int SHOOT_PAIRS=2;
-    private static final double INTAKE_SEC=1.5;
-    private static final double SPEED_HOLD_SEC=1.0;
-    private static final double FIRST_EXTRA_SEC=0.5;
-    private static final double CLOSE_PAUSE_SEC=0.2;
+    private static final double FLYWHEEL_SPINUP_SEC=2.0;
+    private static final double FEED_SEC=1.0;
     private static final double NEXT_HOLD_SEC=0.30;
+    private static final double INTAKE_SEC=2.5;
+    private static final int SHOOT_PAIRS=2;
 
     private static final String[] NAMES={
             "spin start",
@@ -56,14 +52,11 @@ public class Auto extends AutoBase {
     private Shooter shooter;
 
     private final ElapsedTime timer=new ElapsedTime();
-    private final ElapsedTime speedHold=new ElapsedTime();
 
     private int state=0;
     private int entered=-1;
-    private int pairIndex;
-    private boolean feeding;
-
-    private boolean blue=false;
+    private int pairIndex=0;
+    private boolean feeding=false;
 
     @Override
     public void runOpMode() {
@@ -72,35 +65,22 @@ public class Auto extends AutoBase {
         intake=new Intake(hardwareMap);
         shooter=new Shooter(hardwareMap);
 
+        follower.setPose(new Pose(
+                START_X,
+                START_Y,
+                Math.toRadians(START_H)
+        ));
+
         intake.setStopper_close();
         intake.stop();
         shooter.setTargetVelocity(0);
 
-        while(!isStarted()&&!isStopRequested()) {
-            if(gamepad1.b) blue=false;
-            if(gamepad1.x) blue=true;
+        telemetry.addLine("Auto");
+        telemetry.update();
 
-            telemetry.addLine("AUTO SIDE");
-            telemetry.addData("Side",blue ? "BLUE" : "RED");
-            telemetry.addLine("");
-            telemetry.addLine("B = RED");
-            telemetry.addLine("X = BLUE");
-
-            telemetry.addData("Start X",x(START_X));
-            telemetry.addData("Start Y",y(START_Y));
-            telemetry.addData("Start H",h(START_H));
-            telemetry.update();
-
-            sleep(20);
-        }
+        waitForStart();
 
         if(isStopRequested()) return;
-
-        follower.setPose(new Pose(
-                x(START_X),
-                y(START_Y),
-                Math.toRadians(h(START_H))
-        ));
 
         while(opModeIsActive()) {
             follower.update();
@@ -114,33 +94,54 @@ public class Auto extends AutoBase {
                 loopState(state);
             }
 
-            telemetry.addData("Side",blue ? "BLUE" : "RED");
-            telemetry.addData("State",
-                    state<NAMES.length ? NAMES[state] : "done");
+            telemetry.addData(
+                    "State",
+                    state<NAMES.length ? NAMES[state] : "done"
+            );
 
-            telemetry.addData("Shooter target",
-                    shooter.getTargetVelocity());
-            telemetry.addData("Shooter speed",
-                    shooter.getSpeed());
-            telemetry.addData("Shooter power",
-                    shooter.getPower());
+            telemetry.addData(
+                    "Shooter target",
+                    shooter.getTargetVelocity()
+            );
 
-            telemetry.addData("X",follower.pose().x());
-            telemetry.addData("Y",follower.pose().y());
-            telemetry.addData("Heading",
-                    Math.toDegrees(follower.pose().heading()));
+            telemetry.addData(
+                    "Shooter speed",
+                    shooter.getSpeed()
+            );
+
+            telemetry.addData(
+                    "Shooter power",
+                    shooter.getPower()
+            );
+
+            telemetry.addData(
+                    "X",
+                    follower.pose().x()
+            );
+
+            telemetry.addData(
+                    "Y",
+                    follower.pose().y()
+            );
+
+            telemetry.addData(
+                    "Heading",
+                    Math.toDegrees(follower.pose().heading())
+            );
 
             telemetry.update();
         }
 
         intake.stop();
         intake.setStopper_close();
+
         shooter.setTargetVelocity(0);
         shooter.update();
     }
 
     private void enter(int state) {
         switch(state) {
+
             case 0:
                 shooter.setTargetVelocity(
                         Constants.SHOOTER_AUTO_VELOCITY
@@ -148,6 +149,7 @@ public class Auto extends AutoBase {
 
                 intake.setStopper_close();
                 intake.stop();
+
                 holdHere();
                 break;
 
@@ -164,11 +166,11 @@ public class Auto extends AutoBase {
                 intake.in();
 
                 followCurve(
-                        x(COLLECT_CONTROL_X),
-                        y(COLLECT_CONTROL_Y),
-                        x(COLLECT_X),
-                        y(COLLECT_Y),
-                        h(COLLECT_H)
+                        COLLECT_CONTROL_X,
+                        COLLECT_CONTROL_Y,
+                        COLLECT_X,
+                        COLLECT_Y,
+                        COLLECT_H
                 );
                 break;
 
@@ -181,17 +183,18 @@ public class Auto extends AutoBase {
 
             case 4:
                 intake.stop();
+                intake.setStopper_close();
 
                 shooter.setTargetVelocity(
                         Constants.SHOOTER_AUTO_VELOCITY
                 );
 
                 followCurve(
-                        x(SHOOT2_CONTROL_X),
-                        y(SHOOT2_CONTROL_Y),
-                        x(SHOOT2_X),
-                        y(SHOOT2_Y),
-                        h(SHOOT2_H)
+                        SHOOT2_CONTROL_X,
+                        SHOOT2_CONTROL_Y,
+                        SHOOT2_X,
+                        SHOOT2_Y,
+                        SHOOT2_H
                 );
                 break;
 
@@ -221,9 +224,9 @@ public class Auto extends AutoBase {
                 shooter.setTargetVelocity(0);
 
                 followLine(
-                        x(PARK_X),
-                        y(PARK_Y),
-                        h(PARK_H)
+                        PARK_X,
+                        PARK_Y,
+                        PARK_H
                 );
                 break;
 
@@ -240,9 +243,10 @@ public class Auto extends AutoBase {
 
     private void loopState(int state) {
         switch(state) {
+
             case 0:
             case 5:
-                if(shooterHeld(SPEED_HOLD_SEC)) {
+                if(timer.seconds()>=FLYWHEEL_SPINUP_SEC) {
                     this.state=state+1;
                 }
                 break;
@@ -271,23 +275,8 @@ public class Auto extends AutoBase {
         }
     }
 
-    private boolean shooterHeld(double holdSec) {
-        double target=shooter.getTargetVelocity();
-
-        boolean near=
-                target>0&&
-                        Math.abs(shooter.getSpeed()-target)
-                                <=Constants.SHOOTER_VELOCITY_TOLERANCE;
-
-        if(!near) {
-            speedHold.reset();
-            return false;
-        }
-
-        return speedHold.seconds()>=holdSec;
-    }
-
     private void feedPair(int state) {
+
         if(pairIndex>=SHOOT_PAIRS) {
             intake.stop();
             intake.setStopper_close();
@@ -297,23 +286,19 @@ public class Auto extends AutoBase {
         }
 
         if(!feeding) {
+
             intake.setStopper_close();
             intake.stop();
 
-            if(pairIndex>0&&
-                    timer.seconds()<CLOSE_PAUSE_SEC) {
+            if(pairIndex>0&&timer.seconds()<NEXT_HOLD_SEC) {
                 return;
             }
 
-            double hold=
-                    pairIndex==0
-                            ? SPEED_HOLD_SEC+FIRST_EXTRA_SEC
-                            : NEXT_HOLD_SEC;
+            feeding=true;
+            timer.reset();
 
-            if(shooterHeld(hold)) {
-                feeding=true;
-                timer.reset();
-            }
+            intake.setStopper_open();
+            intake.in();
 
             return;
         }
@@ -331,27 +316,5 @@ public class Auto extends AutoBase {
         pairIndex++;
 
         timer.reset();
-        speedHold.reset();
-    }
-
-    private double x(double value) {
-        if(blue) return FIELD_SIZE-value;
-        return value;
-    }
-
-    private double y(double value) {
-        if(blue) return FIELD_SIZE-value;
-        return value;
-    }
-
-    private double h(double value) {
-        if(!blue) return value;
-
-        value+=180;
-
-        while(value>=360) value-=360;
-        while(value<0) value+=360;
-
-        return value;
     }
 }

@@ -50,11 +50,11 @@ public class Constants {
     public static final double STICK_DEADZONE = 0.06;
 
     public static final double INTAKE_IN = 1.0;
-    public static final double INTAKE_OUT = -0.4;
+    public static final double INTAKE_OUT = -1.0;
     public static final double SHOOTER_POWER = 1.0;
     public static final double SHOOTER_RAMP = 0.03;
-    public static final double SHOOTER_TELEOP_RPM = 2570;
-    public static final double SHOOTER_AUTO_RPM = 2590;
+    public static final double SHOOTER_TELEOP_RPM = 2450;
+    public static final double SHOOTER_AUTO_RPM = 2400;
     public static final double SHOOTER_TICKS_PER_REV = 28;
     public static final double SHOOTER_TARGET_VELOCITY = SHOOTER_TELEOP_RPM * SHOOTER_TICKS_PER_REV / 60.0;
     public static final double SHOOTER_AUTO_VELOCITY = SHOOTER_AUTO_RPM * SHOOTER_TICKS_PER_REV / 60.0;

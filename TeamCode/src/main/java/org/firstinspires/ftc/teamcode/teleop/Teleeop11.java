@@ -54,13 +54,13 @@ public class Teleeop11 extends LinearOpMode {
 
             if(gamepad2.right_bumper) {
                 intake.in();
-            }else if(gamepad2.right_trigger>0.3) {
+            }else if(gamepad2.left_bumper) {
                 intake.out();
             }else {
                 intake.stop();
             }
 
-            if(gamepad2.left_bumper) {
+            if(gamepad2.left_trigger>0.3) {
                 shooter.setTargetVelocity(Constants.SHOOTER_TARGET_VELOCITY);
             }else {
                 shooter.setTargetVelocity(0);
